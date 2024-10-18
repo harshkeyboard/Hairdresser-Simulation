@@ -1,0 +1,107 @@
+#Hairdresser Problem V3
+import simpy
+import random
+import statistics 
+
+
+
+class Hairdresser(object):
+    def __init__(self, env, workers, p_HandS):
+        self.env = env
+        self.workers = simpy.Resource(env, workers)
+        self.p_HandS = p_HandS
+            
+    def job(self, customer):
+        p = self.p_HandS 
+        r = random.randint(0,100)
+        
+        if p < r:
+            yield self.env.timeout(10)
+        
+        else:
+            yield self.env.timeout(20)
+        
+                
+
+wait_times = []
+
+def go_to_hairdresser(env, customer, hairdresser):
+    
+    arrival_time = env.now
+    
+    with hairdresser.workers.request() as request:
+        yield request
+        yield env.process(hairdresser.job(customer))
+        
+    wait_times.append(env.now - arrival_time)
+
+
+
+def run_hairdresser(env, workers, p_HandS):
+    hairdresser = Hairdresser(env, workers, p_HandS)
+    
+    for customer in range(1):
+            #Hiw many customers are in the store at the beginning of the simulation
+        env.process(go_to_hairdresser(env, customer, hairdresser))
+    
+    while True:
+        yield env.timeout(3)
+            #New customer in every 3 minutes
+        customer += 1
+        env.process(go_to_hairdresser(env, customer, hairdresser))
+        
+    
+
+def get_average_wait_time(wait_times):
+    average_wait = statistics.mean(wait_times)
+        
+    minutes, frac_minutes = divmod(average_wait, 1)
+    seconds = frac_minutes * 60
+    return round(minutes), round(seconds)
+
+
+
+def get_user_input():
+    num_employees = input("Input number of employees working: ")
+    p_HandS = input("Input % chance customer will want a haircut and shampoo: ")
+    
+    params = [num_employees, p_HandS]
+    
+    if all(str(i).isdigit for i in params):
+        params = [int(x) for x in params]
+    
+    else: 
+        print("Could not parse input. Using default values (1 and 0.5).")
+        params = [1, 50]
+
+    return params
+
+
+
+def main():
+    random.seed(38)
+    
+    workers, p_HandS = get_user_input()
+    
+    env = simpy.Environment()
+    
+    env.process(run_hairdresser(env, workers, p_HandS))
+    
+    env.run(until = 180)
+    
+    mins, secs = get_average_wait_time(wait_times)
+    
+    print("Running simulation...", 
+          f"\nThe average wait time is {mins} minutes and {secs} seconds.",)
+    
+    
+#%%
+
+if __name__ == "__main__":
+    wait_times = []
+    main()
+    
+    
+
+
+    

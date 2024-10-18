@@ -1,15 +1,17 @@
 #Hairdresser Problem V3
 import simpy
 import random
-import statistics 
+import statistics
+import math 
 
 
 
 class Hairdresser(object):
-    def __init__(self, env, workers, p_HandS):
+    def __init__(self, env, workers, p_HandS, busyness):
         self.env = env
         self.workers = simpy.Resource(env, workers)
         self.p_HandS = p_HandS
+        self.busyness = busyness
             
     def job(self, customer):
         p = self.p_HandS 
@@ -23,7 +25,6 @@ class Hairdresser(object):
         
                 
 
-wait_times = []
 
 def go_to_hairdresser(env, customer, hairdresser):
     
@@ -37,18 +38,24 @@ def go_to_hairdresser(env, customer, hairdresser):
 
 
 
-def run_hairdresser(env, workers, p_HandS):
-    hairdresser = Hairdresser(env, workers, p_HandS)
+def run_hairdresser(env, workers, p_HandS, busyness):
+    hairdresser = Hairdresser(env, workers, p_HandS, busyness)
     
-    for customer in range(1):
-            #Hiw many customers are in the store at the beginning of the simulation
-        env.process(go_to_hairdresser(env, customer, hairdresser))
-    
+    customer = 0
+
     while True:
-        yield env.timeout(3)
-            #New customer in every 3 minutes
-        customer += 1
-        env.process(go_to_hairdresser(env, customer, hairdresser))
+        a = busyness/10
+        b = (a * math.exp(-(((env.now/60) - 4) ** 2) / 10)) * 10
+        R = random.randint(0, 100)
+            
+        if R < b:
+            customer += 1
+            env.process(go_to_hairdresser(env, customer, hairdresser))
+            
+            yield env.timeout(1)
+            
+        else:
+            yield env.timeout(1)
         
     
 
@@ -64,15 +71,16 @@ def get_average_wait_time(wait_times):
 def get_user_input():
     num_employees = input("Input number of employees working: ")
     p_HandS = input("Input % chance customer will want a haircut and shampoo: ")
+    busyness = input("At its peak, what is the % chance that a customer will enter the store every minute?, ")
     
-    params = [num_employees, p_HandS]
+    params = [num_employees, p_HandS, busyness]
     
     if all(str(i).isdigit for i in params):
         params = [int(x) for x in params]
     
     else: 
         print("Could not parse input. Using default values (1 and 0.5).")
-        params = [1, 50]
+        params = [1, 50, 30]
 
     return params
 
@@ -81,11 +89,11 @@ def get_user_input():
 def main():
     random.seed(38)
     
-    workers, p_HandS = get_user_input()
+    workers, p_HandS, busyness = get_user_input()
     
     env = simpy.Environment()
     
-    env.process(run_hairdresser(env, workers, p_HandS))
+    env.process(run_hairdresser(env, workers, p_HandS, busyness))
     
     env.run(until = 180)
     
@@ -100,6 +108,8 @@ def main():
 if __name__ == "__main__":
     wait_times = []
     main()
+    
+
     
     
 

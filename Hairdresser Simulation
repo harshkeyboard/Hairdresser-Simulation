@@ -3,6 +3,7 @@ import simpy
 import random
 import statistics
 import math 
+import matplotlib.pyplot as plt
 
 
 
@@ -35,6 +36,7 @@ def go_to_hairdresser(env, customer, hairdresser):
         yield env.process(hairdresser.job(customer))
         
     wait_times.append(env.now - arrival_time)
+    leave_times.append(env.now)
 
 
 
@@ -102,11 +104,17 @@ def main():
     print("Running simulation...", 
           f"\nThe average wait time is {mins} minutes and {secs} seconds.",)
     
+    xdata = leave_times
+    ydata = wait_times
+    plt.plot(xdata, ydata, "o")
+    plt.show()
+
     
 #%%
 
 if __name__ == "__main__":
     wait_times = []
+    leave_times = []
     main()
     
 
